@@ -52,6 +52,9 @@ define('game', [
     var player_punch_spritesheet = new Image();
     player_punch_spritesheet.src = "fighter_punch_spritesheet.png";
 
+    var player_punch_uppercut_spritesheet = new Image();
+    player_punch_uppercut_spritesheet.src = "fighter_punch_uppercut_spritesheet.png";
+
     var bag = new Image();
     bag.src = "bag.png";
 
@@ -63,6 +66,7 @@ define('game', [
 
     const WALKING = 'Walking';
     const PUNCH = 'Punch';
+    const PUNCH_UPPERCUT = 'Punch_Uppercut';
     const FALL = 'Fall';
 
     const LEFT = 'Left';
@@ -148,6 +152,7 @@ define('game', [
             this.state = WALKING;
             this.duration = null;
             this.direction = LEFT;
+            this.comboReady = false;
             this.setIdleSpriteSheet();
         }
         setIdleSpriteSheet() {
@@ -173,6 +178,17 @@ define('game', [
                 autoPlay: true
             });
         }
+        setPunchUppercutSpriteSheet() {
+            this.sprite = SpriteSheet.new(player_punch_uppercut_spritesheet, {
+                frames: [100, 100, 100, 100, 200, 200, 100, 100],
+                x: 0,
+                y: 0,
+                width: 60,
+                height: 84,
+                restart: false,
+                autoPlay: true
+            });
+        }
         tick() {
             var pad = userInput.readInput()[this.id];
             debugWriteButtons(pad);
@@ -183,6 +199,8 @@ define('game', [
                     if (!(pad && pad.axes && pad.axes[2] && pad.axes[3])) return;
 
                     this.direction =  (pad.axes[0] > 0) ? LEFT: RIGHT;
+
+                    this.comboReady = false;
 
                     if (pad.buttons[2].pressed) {
                         var offset = 7;
@@ -206,6 +224,35 @@ define('game', [
                     this.hitbox.y = this.hitbox.y + pad.axes[1];
                 break;
                 case PUNCH:
+                    this.duration = this.duration - 1;
+                    if (pad.buttons[2].pressed && this.comboReady) {
+                        var offset = 7;
+                        var config = {
+                            hitbox: {
+                                x: this.hitbox.x + this.hitbox.width,
+                                y: this.hitbox.y + offset,
+                                width: this.hitbox.width,
+                                height: this.hitbox.height - offset*2
+                            },
+                            game: game
+                        }
+                        gameObjects.push(new Punch(config))
+                        this.state = PUNCH_UPPERCUT;
+                        this.setPunchUppercutSpriteSheet();
+                        this.duration = 70;
+                        return;
+                    }
+                    if (!pad.buttons[2].pressed) {
+                        this.comboReady = true;
+                    }
+
+                    if (this.duration < 0) {
+                        this.state = WALKING;
+                        this.setIdleSpriteSheet();
+                        this.duration = null;
+                    }
+                break;
+                case PUNCH_UPPERCUT:
                     this.duration = this.duration - 1;
                     if (this.duration < 0) {
                         this.state = WALKING;
