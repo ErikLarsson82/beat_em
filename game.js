@@ -1,13 +1,43 @@
 define('game', [
     'underscore',
     'userInput',
-    'SpriteSheet'
+    'SpriteSheet',
+    'TimedAction'
 ], function (
     _,
     userInput,
-    SpriteSheet
-) {
+    SpriteSheet,
+    TimedAction
+) {    
     var DEBUG_WRITE_BUTTONS = false;
+    
+    let gameObjects = [];
+    var game = {}
+    window.game = game;
+
+    game.detectHits = function(who, type) {
+        return _.filter(gameObjects, function(item) {
+            if (!item.hitbox) {
+                console.error("Dimensions not found on item");
+                return false;
+            }
+            if (item === who) return;
+
+            const condition1 = who.hitbox.x + who.hitbox.width > item.hitbox.x;
+            const condition2 = who.hitbox.x < item.hitbox.x + item.hitbox.width;
+            const condition3 = who.hitbox.y + who.hitbox.height > item.hitbox.y;
+            const condition4 = who.hitbox.y < item.hitbox.y + item.hitbox.height;
+            const condition5 = item instanceof type;
+            return (condition1 && condition2 && condition3 && condition4 && condition5);
+        });
+    }
+
+    game.findGameObj = function(klass) {
+        return _.find(gameObjects, function(item) {
+            return item instanceof klass;
+        });
+    }
+    
 
     function debugWriteButtons(pad) {
         if (!DEBUG_WRITE_BUTTONS) return;
@@ -22,26 +52,11 @@ define('game', [
     var player_punch_spritesheet = new Image();
     player_punch_spritesheet.src = "fighter_punch_spritesheet.png";
 
-    function detectHits(who, list, pos) {
-        return _.filter(list, function(item) {
-            if (!item.dimensions) {
-                console.error("Dimensions not found on item");
-                return false;
-            }
-            if (item === who) return;
+    var bag = new Image();
+    bag.src = "bag.png";
 
-            const halfWidth = (item.dimensions[0] / 2);
-            const halfHeight = (item.dimensions[1] / 2);
-
-            const condition1 = pos.x > item.pos.x - halfWidth;
-            const condition2 = pos.x < item.pos.x + halfWidth;
-            const condition3 = pos.y > item.pos.y - halfHeight;
-            const condition4 = pos.y < item.pos.y + halfHeight;
-
-            return (condition1 && condition2 && condition3 && condition4);
-        });
-    }
-
+    var bag_punched_spritesheet = new Image();
+    bag_punched_spritesheet.src = "bag_punched_spritesheet.png";
 
     const WALKING = 'Walking';
     const PUNCH = 'Punch';
@@ -51,10 +66,81 @@ define('game', [
     const RIGHT = 'Right';
 
     class GameObject {
-        constructor(id, dimensions, pos) {
-            this.pos = pos;
-            this.id = id;
-            this.dimensions = dimensions;
+        constructor(config) {
+            this.game = config.game;
+            this.hitbox = config.hitbox;
+            this.color = config.color || "#444444";
+            this.markedForRemoval = false;
+        }
+        tick() {
+
+        }
+        draw2d() {
+            context.fillStyle = this.color;
+            context.fillRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height);
+        }
+        draw3d() {
+
+        }
+    }
+
+    class Punch extends GameObject {
+        constructor(config) {
+            super(config);
+            this.detectHitsOnce = _.once(() => {
+                var bag = this.game.detectHits(this, PunchBag)[0];
+                bag && bag.hit();
+            })
+            this.removeTimer = new TimedAction(200, () => { this.markedForRemoval = true });
+        }
+        tick() {
+            this.detectHitsOnce();
+            this.removeTimer.tick();
+        }
+        draw2d() {
+            context.fillStyle = this.color;
+            context.fillRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height);
+        }
+    }
+
+    class PunchBag extends GameObject {
+        constructor(config) {
+            super(config);
+            this.sprite = { tick: () => {} };
+            this.resetColor = { tick: () => {} };
+        }
+        tick() {
+            this.sprite.tick();
+            this.resetColor.tick();
+        }
+        hit() {
+            this.color = "red";
+            this.resetColor = new TimedAction(100, () => { this.color = "blue" })
+            this.sprite = SpriteSheet.new(bag_punched_spritesheet, {
+                frames: [400, 400, 400, 400, 400],
+                x: 0,
+                y: 0,
+                width: 56,
+                height: 84,
+                restart: false,
+                autoPlay: true,
+                callback: () => { this.sprite = { tick: () => {} } }
+            });
+        }
+        draw3d() {
+            if (this.sprite.draw) {
+                this.sprite.draw(context, { x: this.hitbox.x, y: this.hitbox.y });
+            } else {
+                context.drawImage(bag, this.hitbox.x, this.hitbox.y)
+            }
+        }
+    }
+    window.PunchBag = PunchBag;
+    
+    class Player extends GameObject {
+        constructor(config) {
+            super(config);
+            this.id = config.id;
             this.markedForRemoval = false;
             this.state = WALKING;
             this.duration = null;
@@ -96,16 +182,25 @@ define('game', [
                     this.direction =  (pad.axes[0] > 0) ? LEFT: RIGHT;
 
                     if (pad.buttons[2].pressed) {
-                        //let pos = _.clone(this.pos);
-
+                        var offset = 7;
+                        var config = {
+                            hitbox: {
+                                x: this.hitbox.x + this.hitbox.width,
+                                y: this.hitbox.y + offset,
+                                width: this.hitbox.width,
+                                height: this.hitbox.height - offset*2
+                            },
+                            game: game
+                        }
+                        gameObjects.push(new Punch(config))
                         this.state = PUNCH;
                         this.setPunchSpriteSheet();
                         this.duration = 70;
                         return;
                     }
 
-                    this.pos.x = this.pos.x + pad.axes[0];
-                    this.pos.y = this.pos.y + pad.axes[1];
+                    this.hitbox.x = this.hitbox.x + pad.axes[0];
+                    this.hitbox.y = this.hitbox.y + pad.axes[1];
                 break;
                 case PUNCH:
                     this.duration = this.duration - 1;
@@ -119,34 +214,21 @@ define('game', [
             
         }
         draw2d() {
-            return;
             const colors = {
                 Walking: "green",
                 Punch: "red",
                 Fall: "blue"
 
             }
-            //context.fillStyle = colors[this.state];
-            //context.fillRect(this.pos.x - this.dimensions[0]/2, this.pos.y - this.dimensions[1]/2, this.dimensions[0], this.dimensions[1]);
-            context.fillStyle = "#444444";
-            if (this.state !== PUNCH) return;
-            if (this.direction === LEFT) {
-                context.fillRect(this.pos.x, this.pos.y - this.dimensions[1], 10, 10);
-            } else {
-                context.fillRect(this.pos.x - 20, this.pos.y - this.dimensions[1], 10, 10);
-            }
+            context.fillStyle = colors[this.state];
+            context.fillRect(this.hitbox.x, this.hitbox.y, this.hitbox.width, this.hitbox.height);
         }
         draw3d() {
-            context.save();
-            context.translate(Math.round(this.pos.x), Math.round(this.pos.y));
-            this.sprite.draw(context);
-            context.restore();
+            var pos = { x: Math.round(this.hitbox.x), y: Math.round(this.hitbox.y) }
+            this.sprite.draw(context, pos);
         }
     }
 
-    let gameObjects = [];
-    window.kurt = gameObjects
-    
     const delta = 1.0/144;
 
     var canvas = document.getElementById('canvas');
@@ -154,8 +236,27 @@ define('game', [
 
     return {
         init: function() {
-            gameObjects.push(new GameObject(0, [10, 10], {x: 300, y: 300}))
-            //gameObjects.push(new GameObject(null, [100, 100], {x: 320, y: 320}))
+            gameObjects.push(new Player({
+                hitbox: {
+                    x: 300,
+                    y: 300,
+                    width: 20,
+                    height: 20
+                },
+                id: 0,
+                game: game
+            }));
+
+            gameObjects.push(new PunchBag({
+                hitbox: {
+                    x: 320,
+                    y: 300,
+                    width: 20,
+                    height: 20
+                },
+                color: "blue",
+                game: game
+            }))
         },
         tick: function() {
 
@@ -167,12 +268,19 @@ define('game', [
                 return !gameObject.markedForRemoval;
             });
 
+            gameObjects = _.sortBy(gameObjects, (obj) => {
+                return obj.hitbox.y;
+            })
+
             context.fillStyle = "gray"
             context.fillRect(0, 0, 1024, 768)
 
+            context.save();
+            context.translate(200, 200)
             _.each(gameObjects, function(gameObject) {
                 gameObject.draw2d();
             });
+            context.restore();
 
             _.each(gameObjects, function(gameObject) {
                 gameObject.draw3d();

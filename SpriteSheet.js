@@ -56,8 +56,15 @@
 
     };
 
-    spriteSheet.draw = function(context) {
+    spriteSheet.draw = function(context, position) {
+      if (position) {
+        context.save();
+        context.translate(position.x, position.y)
+      }
       context.drawImage(spriteSheet.url, spriteSheet.currentFrame * frameData.width, 0, frameData.width, frameData.height, frameData.x, frameData.y, frameData.width, frameData.height);
+      if (position) {
+        context.restore();
+      }
     };
 
     return spriteSheet;
