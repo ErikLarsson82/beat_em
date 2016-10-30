@@ -61,6 +61,9 @@ define('game', [
     var bag_punched_spritesheet = new Image();
     bag_punched_spritesheet.src = "bag_punched_spritesheet.png";
 
+    var red_punchbag_spritesheet = new Image();
+    red_punchbag_spritesheet.src = "red_punchbag_spritesheet.png";
+
     var dojo = new Image();
     dojo.src = "dojo.png";
 
@@ -97,6 +100,9 @@ define('game', [
             this.detectHitsOnce = _.once(() => {
                 var bag = this.game.detectHits(this, PunchBag)[0];
                 bag && bag.hit();
+
+                var bagRed = this.game.detectHits(this, PunchBagRed)[0];
+                bagRed && bagRed.hit();
             })
             this.removeTimer = new TimedAction(200, () => { this.markedForRemoval = true });
         }
@@ -140,6 +146,31 @@ define('game', [
             } else {
                 context.drawImage(bag, this.hitbox.x, this.hitbox.y)
             }
+        }
+    }
+
+    class PunchBagRed extends GameObject {
+        constructor(config) {
+            super(config);
+            this.sprite = SpriteSheet.new(red_punchbag_spritesheet, {
+                frames: [150, 200, 300, 400, 400, 500, 400],
+                x: 0,
+                y: 0,
+                width: 13 * 4,
+                height: 23 * 4,
+                restart: false,
+                autoPlay: false
+            });
+        }
+        tick() {
+            this.sprite.tick();
+        }
+        hit() {
+            this.sprite.stop();
+            this.sprite.play();
+        }
+        draw3d() {
+            this.sprite.draw(context, { x: this.hitbox.x, y: this.hitbox.y });
         }
     }
     window.PunchBag = PunchBag;
@@ -305,6 +336,16 @@ define('game', [
                     height: 20
                 },
                 color: "blue",
+                game: game
+            }))
+
+            gameObjects.push(new PunchBagRed({
+                hitbox: {
+                    x: 204,
+                    y: 204,
+                    width: 20,
+                    height: 20
+                },
                 game: game
             }))
         },
