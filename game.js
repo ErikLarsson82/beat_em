@@ -2,12 +2,14 @@ define('game', [
     'underscore',
     'userInput',
     'SpriteSheet',
-    'TimedAction'
+    'TimedAction',
+    'utils'
 ], function (
     _,
     userInput,
     SpriteSheet,
-    TimedAction
+    TimedAction,
+    utils
 ) {    
     var DEBUG_WRITE_BUTTONS = false;
     
@@ -67,6 +69,12 @@ define('game', [
     var dojo = new Image();
     dojo.src = "dojo.png";
 
+    var weak = new Image();
+    weak.src = "weak.png";
+
+    var power = new Image();
+    power.src = "power.png";
+
     const WALKING = 'Walking';
     const PUNCH = 'Punch';
     const PUNCH_UPPERCUT = 'Punch_Uppercut';
@@ -94,15 +102,49 @@ define('game', [
         }
     }
 
+    class TextFlash extends GameObject {
+        constructor(config) {
+            super(config);
+            this.duration = (config.max) ? 4000 : 1500;
+            this.timer = new TimedAction(this.duration, () => { this.markedForRemoval = true; })
+            this.max = config.max;
+            if (config.max) {
+                this.sprite = SpriteSheet.new(power, {
+                    frames: [100, 100, 100, 100, 100, 100],
+                    x: 0,
+                    y: 0,
+                    width: 36 * 4,
+                    height: 9 * 4,
+                    restart: true,
+                    autoPlay: true
+                });
+            }
+        }
+        tick() {
+            this.hitbox.y = this.hitbox.y - 0.5;
+            this.timer.tick();
+            this.sprite && this.sprite.tick();
+        }
+        draw3d() {
+            context.globalAlpha = utils.interpolateLinear(this.duration, 0, 1)[Math.round(this.timer.status())];
+            if (this.max) {
+                this.sprite.draw(context, { x: this.hitbox.x, y: this.hitbox.y });
+            } else {
+                context.drawImage(weak, this.hitbox.x, this.hitbox.y);
+            }
+            context.globalAlpha = 1;
+        }
+    }
+
     class Punch extends GameObject {
         constructor(config) {
             super(config);
             this.detectHitsOnce = _.once(() => {
                 var bag = this.game.detectHits(this, PunchBag)[0];
-                bag && bag.hit();
+                bag && bag.hit(config.power);
 
                 var bagRed = this.game.detectHits(this, PunchBagRed)[0];
-                bagRed && bagRed.hit();
+                bagRed && bagRed.hit(config.power);
             })
             this.removeTimer = new TimedAction(200, () => { this.markedForRemoval = true });
         }
@@ -126,7 +168,26 @@ define('game', [
             this.sprite.tick();
             this.resetColor.tick();
         }
-        hit() {
+        hit(power) {
+            if (power > 0 && power < 50) {
+                var config = {
+                    hitbox: {
+                        x: this.hitbox.x + 5,
+                        y: this.hitbox.y - 15
+                    },
+                    max: false
+                }
+                gameObjects.push(new TextFlash(config));
+            } else if (power > 50) {
+                var config = {
+                    hitbox: {
+                        x: this.hitbox.x + 5,
+                        y: this.hitbox.y - 15
+                    },
+                    max: true
+                }
+                gameObjects.push(new TextFlash(config));
+            }
             this.color = "red";
             this.resetColor = new TimedAction(100, () => { this.color = "blue" })
             this.sprite = SpriteSheet.new(bag_punched_spritesheet, {
@@ -165,7 +226,26 @@ define('game', [
         tick() {
             this.sprite.tick();
         }
-        hit() {
+        hit(power) {
+            if (power > 0 && power < 65) {
+                var config = {
+                    hitbox: {
+                        x: this.hitbox.x + 5,
+                        y: this.hitbox.y - 15
+                    },
+                    max: false
+                }
+                gameObjects.push(new TextFlash(config));
+            } else if (power > 65) {
+                var config = {
+                    hitbox: {
+                        x: this.hitbox.x + 5,
+                        y: this.hitbox.y - 15
+                    },
+                    max: true
+                }
+                gameObjects.push(new TextFlash(config));
+            }
             this.sprite.stop();
             this.sprite.play();
         }
@@ -265,7 +345,8 @@ define('game', [
                                 width: this.hitbox.width,
                                 height: this.hitbox.height - offset*2
                             },
-                            game: game
+                            game: game,
+                            power: 70 - this.duration
                         }
                         gameObjects.push(new Punch(config))
                         this.state = PUNCH_UPPERCUT;

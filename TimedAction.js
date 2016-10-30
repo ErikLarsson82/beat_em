@@ -12,6 +12,9 @@
                 this.funktion();
             }
         }
+        status() {
+            return this.amount;
+        }
     }
 
     if (typeof define !== 'undefined') {
