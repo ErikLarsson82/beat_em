@@ -58,6 +58,9 @@ define('game', [
     var bag_punched_spritesheet = new Image();
     bag_punched_spritesheet.src = "bag_punched_spritesheet.png";
 
+    var dojo = new Image();
+    dojo.src = "dojo.png";
+
     const WALKING = 'Walking';
     const PUNCH = 'Punch';
     const FALL = 'Fall';
@@ -272,8 +275,7 @@ define('game', [
                 return obj.hitbox.y;
             })
 
-            context.fillStyle = "gray"
-            context.fillRect(0, 0, 1024, 768)
+            context.drawImage(dojo, 0, 0);
 
             context.save();
             context.translate(200, 200)
