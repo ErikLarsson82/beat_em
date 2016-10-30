@@ -12,6 +12,7 @@ define('game', [
     utils
 ) {    
     var DEBUG_WRITE_BUTTONS = false;
+    var DEBUG_NO_2D = true;
     
     let gameObjects = [];
     var game = {}
@@ -446,12 +447,14 @@ define('game', [
 
             context.drawImage(dojo, 0, 0);
 
-            context.save();
-            context.translate(200, 200)
-            _.each(gameObjects, function(gameObject) {
-                gameObject.draw2d();
-            });
-            context.restore();
+            if (!DEBUG_NO_2D) {
+                context.save();
+                context.translate(200, 200)
+                _.each(gameObjects, function(gameObject) {
+                    gameObject.draw2d();
+                });
+                context.restore();
+            }
 
             _.each(gameObjects, function(gameObject) {
                 gameObject.draw3d();
