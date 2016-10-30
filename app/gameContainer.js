@@ -1,9 +1,13 @@
 requirejs.config({
-    waitSeconds: '60'
+    waitSeconds: '60',
+    baseUrl: 'lib',
+    paths: {
+      'app': '../app',
+    }
 });
 
 requirejs([
-  'game'
+  'app/game'
 ], function (game) {
 
     let running = true;

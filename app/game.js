@@ -1,4 +1,4 @@
-define('game', [
+define('app/game', [
     'underscore',
     'userInput',
     'SpriteSheet',
@@ -50,31 +50,31 @@ define('game', [
     }
 
     var player_idle_spritesheet = new Image();
-    player_idle_spritesheet.src = "fighter_idle_spritesheet.png";
+    player_idle_spritesheet.src = "./graphics/fighter_idle_spritesheet.png";
 
     var player_punch_spritesheet = new Image();
-    player_punch_spritesheet.src = "fighter_punch_spritesheet.png";
+    player_punch_spritesheet.src = "./graphics/fighter_punch_spritesheet.png";
 
     var player_punch_uppercut_spritesheet = new Image();
-    player_punch_uppercut_spritesheet.src = "fighter_punch_uppercut_spritesheet.png";
+    player_punch_uppercut_spritesheet.src = "./graphics/fighter_punch_uppercut_spritesheet.png";
 
     var bag = new Image();
-    bag.src = "bag.png";
+    bag.src = "./graphics/bag.png";
 
     var bag_punched_spritesheet = new Image();
-    bag_punched_spritesheet.src = "bag_punched_spritesheet.png";
+    bag_punched_spritesheet.src = "./graphics/bag_punched_spritesheet.png";
 
     var red_punchbag_spritesheet = new Image();
-    red_punchbag_spritesheet.src = "red_punchbag_spritesheet.png";
+    red_punchbag_spritesheet.src = "./graphics/red_punchbag_spritesheet.png";
 
     var dojo = new Image();
-    dojo.src = "dojo.png";
+    dojo.src = "./graphics/dojo.png";
 
     var weak = new Image();
-    weak.src = "weak.png";
+    weak.src = "./graphics/weak.png";
 
     var power = new Image();
-    power.src = "power.png";
+    power.src = "./graphics/power.png";
 
     const WALKING = 'Walking';
     const PUNCH = 'Punch';
