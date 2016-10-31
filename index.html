@@ -2,24 +2,49 @@
 <head>
 <script data-main="app/gameContainer" src="lib/require.js"></script>
 <link rel="icon" href="graphics/favicon.png" type="image/png" sizes="16x16">
+<link href="http://fonts.googleapis.com/css?family=Chelsea+Market" rel="stylesheet" type="text/css">
 <style>
 html, body {
-	padding: 0px;
-	margin: 0px;
+	padding: 20px;
+	margin: 20px;
     background-color: gray;
+    font-family: 'Chelsea Market', cursive;
 }
-#canvas {
+.container {
     position: absolute;
-    top:0;
-    bottom: 0;
+    top:30px;
     left: 0;
     right: 0;
     margin:auto;
+    width: 800px;
+}
+#canvas {
     border: 2px solid black;
+    margin: 20px;
+}
+.text {
+    margin: 20px;
 }
 </style>
 </head>
 <body>
-<canvas id="canvas" width="800" height="600"></canvas>
+<div class="container">
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div class="text">
+        <b>Instructions:</b><br/>
+        Try to hit the punching bags with a POWER hit<br />
+        <br/><br/>
+        <b>Keyboard:</b><br/>
+        Left/Right/Up/Down - Walk<br/>
+        Punch - Z<br/>
+        <br/><br/>
+        <b>Controller:</b><br/>
+        Left Stick - Walk<br/>
+        Punch - X<br/>
+        <br/><br/>
+        <b>Created by:</b><br/>
+        Erik Larsson - Design, Graphics, Programming<br/>
+    </div>
+</div>
 </body>
 </html>

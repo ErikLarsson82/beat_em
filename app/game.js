@@ -127,6 +127,8 @@ define('app/game', [
             this.sprite && this.sprite.tick();
         }
         draw3d() {
+            if (this.timer.status() > this.duration - 400 ) return;
+
             context.globalAlpha = utils.interpolateLinear(this.duration, 0, 1)[Math.round(this.timer.status())];
             if (this.max) {
                 this.sprite.draw(context, { x: this.hitbox.x, y: this.hitbox.y });
@@ -302,19 +304,20 @@ define('app/game', [
             });
         }
         tick() {
-            var pad = userInput.readInput()[this.id];
+            var pad = userInput.getInput(this.id);
             debugWriteButtons(pad);
             this.sprite.tick();
             switch(this.state) {
                 case WALKING:
-
-                    if (!(pad && pad.axes && pad.axes[2] && pad.axes[3])) return;
-
+                    this.duration--;
+                    
                     this.direction =  (pad.axes[0] > 0) ? LEFT: RIGHT;
 
                     this.comboReady = false;
 
                     if (pad.buttons[2].pressed) {
+                        if (this.duration > 0) return;
+
                         var offset = 7;
                         var config = {
                             hitbox: {
@@ -362,7 +365,7 @@ define('app/game', [
                     if (this.duration < 0) {
                         this.state = WALKING;
                         this.setIdleSpriteSheet();
-                        this.duration = null;
+                        this.duration = 50;
                     }
                 break;
                 case PUNCH_UPPERCUT:
@@ -370,7 +373,7 @@ define('app/game', [
                     if (this.duration < 0) {
                         this.state = WALKING;
                         this.setIdleSpriteSheet();
-                        this.duration = null;
+                        this.duration = 50;
                     }
                 break;
             }
