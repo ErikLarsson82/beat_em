@@ -12,7 +12,7 @@ define('app/game', [
     utils
 ) {    
     var DEBUG_WRITE_BUTTONS = false;
-    var DEBUG_NO_2D = true;
+    var DEBUG_NO_2D = !true;
     
     let gameObjects = [];
     var game = {}
@@ -54,6 +54,18 @@ define('app/game', [
 
     var player_punch_spritesheet = new Image();
     player_punch_spritesheet.src = "./graphics/fighter_punch_spritesheet.png";
+
+    var lifter_lifting_spritesheet = new Image();
+    lifter_lifting_spritesheet.src = "./graphics/lifter_lifting.png";
+
+    var lifter_hurt_spritesheet = new Image();
+    lifter_hurt_spritesheet.src = "./graphics/lifter_hurt.png";
+
+    var lifter_idle_spritesheet = new Image();
+    lifter_idle_spritesheet.src = "./graphics/lifter_idle.png";
+
+    var lifter_punch_spritesheet = new Image();
+    lifter_punch_spritesheet.src = "./graphics/lifter_punch.png";
 
     var player_punch_uppercut_spritesheet = new Image();
     player_punch_uppercut_spritesheet.src = "./graphics/fighter_punch_uppercut_spritesheet.png";
@@ -148,6 +160,12 @@ define('app/game', [
 
                 var bagRed = this.game.detectHits(this, PunchBagRed)[0];
                 bagRed && bagRed.hit(config.power);
+
+                var lifterDecor = this.game.detectHits(this, LifterDecor)[0];
+                lifterDecor && lifterDecor.hit(config.power);
+
+                var lifter = this.game.detectHits(this, Lifter)[0];
+                lifter && lifter.hit(config.power);
             })
             this.removeTimer = new TimedAction(200, () => { this.markedForRemoval = true });
         }
@@ -210,6 +228,123 @@ define('app/game', [
             } else {
                 context.drawImage(bag, this.hitbox.x, this.hitbox.y)
             }
+        }
+    }
+
+    class LifterDecor extends GameObject {
+        constructor(config) {
+            super(config);
+            this.sprite = { tick: () => {} };
+            this.sprite = SpriteSheet.new(lifter_lifting_spritesheet, {
+                frames: [400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400],
+                x: 0,
+                y: 0,
+                width: 15 * 4,
+                height: 21 * 4,
+                restart: true,
+                autoPlay: true
+            });
+        }
+        hit() {
+            var x = this.hitbox.x;
+            var y = this.hitbox.y;
+            var callback = function() {
+                this.markedForRemoval = true;
+                gameObjects.push(new Lifter({
+                    hitbox: {
+                        x: x, //670
+                        y: y,
+                        width: 40,
+                        height: 25
+                    },
+                    color: "blue",
+                    game: game
+                }))
+            }.bind(this);
+            this.sprite = SpriteSheet.new(lifter_hurt_spritesheet, {
+                frames: [400, 400, 400, 400, 400, 400],
+                x: 0,
+                y: 0,
+                width: 15 * 4,
+                height: 21 * 4,
+                restart: true,
+                autoPlay: true,
+                callback: callback
+            });;
+        }
+        tick() {
+            this.sprite.tick();
+        }
+        draw3d() {
+            this.sprite.draw(context, { x: this.hitbox.x + 5, y: this.hitbox.y });
+        }
+    }
+
+    class Lifter extends GameObject {
+        constructor(config) {
+            super(config);
+            this.sprite = { tick: () => {} };
+            this.reset();
+        }
+        reset() {
+            this.walking = true;
+            this.sprite = SpriteSheet.new(lifter_idle_spritesheet, {
+                frames: [400, 400],
+                x: 0,
+                y: 0,
+                width: 15 * 4,
+                height: 21 * 4,
+                restart: true,
+                autoPlay: true
+            });
+        }
+        hit(power) {
+            var callback = function() {
+                this.reset();
+                this.walking = true;
+            }.bind(this)
+
+            this.walking = false;
+            this.sprite = SpriteSheet.new(lifter_hurt_spritesheet, {
+                frames: [400, 400, 400, 400, 400, 400],
+                x: 0,
+                y: 0,
+                width: 15 * 4,
+                height: 21 * 4,
+                restart: true,
+                autoPlay: true,
+                callback: callback
+            });
+
+            if (power > 0 && power < 65) {
+                var config = {
+                    hitbox: {
+                        x: this.hitbox.x + 5,
+                        y: this.hitbox.y - 15
+                    },
+                    max: false
+                }
+                gameObjects.push(new TextFlash(config));
+            } else if (power > 65) {
+                var config = {
+                    hitbox: {
+                        x: this.hitbox.x + 5,
+                        y: this.hitbox.y - 15
+                    },
+                    max: true
+                }
+                gameObjects.push(new TextFlash(config));
+            }
+        }
+        tick() {
+            this.sprite.tick();
+
+            if (this.walking && this.hitbox.x > 480) {
+                this.hitbox.x -= 0.5;
+            }
+        }
+        draw3d() {
+            this.sprite.draw(context, { x: Math.round(this.hitbox.x + 5), y: Math.round(this.hitbox.y) });
         }
     }
 
@@ -412,6 +547,17 @@ define('app/game', [
                 id: 0,
                 game: game
             }));
+
+            gameObjects.push(new LifterDecor({
+                hitbox: {
+                    x: 670,
+                    y: 310,
+                    width: 40,
+                    height: 25
+                },
+                color: "blue",
+                game: game
+            }))
 
             gameObjects.push(new PunchBag({
                 hitbox: {
