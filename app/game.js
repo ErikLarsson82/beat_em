@@ -12,8 +12,10 @@ define('app/game', [
     utils
 ) {    
     var DEBUG_WRITE_BUTTONS = false;
-    var DEBUG_NO_2D = !true;
+    var DEBUG_NO_2D = true;
+    var DEBUG_KEYBOARD = false;
     
+    let scroller;
     let gameObjects = [];
     var game = {}
     window.game = game;
@@ -67,6 +69,9 @@ define('app/game', [
     var lifter_punch_spritesheet = new Image();
     lifter_punch_spritesheet.src = "./graphics/lifter_punch.png";
 
+    var lifter_knocked_spritesheet = new Image();
+    lifter_knocked_spritesheet.src = "./graphics/lifter_knocked.png";
+
     var player_punch_uppercut_spritesheet = new Image();
     player_punch_uppercut_spritesheet.src = "./graphics/fighter_punch_uppercut_spritesheet.png";
 
@@ -95,6 +100,15 @@ define('app/game', [
 
     const LEFT = 'Left';
     const RIGHT = 'Right';
+
+    if (DEBUG_KEYBOARD) {
+        window.addEventListener("keydown", function(e) {
+            console.log(e.keyCode);
+            if (e.keyCode === 67) {
+                scroller.active = true;
+            }
+        })
+    }
 
     class GameObject {
         constructor(config) {
@@ -280,11 +294,37 @@ define('app/game', [
         }
     }
 
+    class LifterKnocked extends GameObject {
+        constructor(config) {
+            super(config);
+            this.sprite = { tick: () => {} };
+            this.sprite = SpriteSheet.new(lifter_knocked_spritesheet, {
+                frames: [400, 400, 400, 400, 400, 3000],
+                x: 0,
+                y: 0,
+                width: 15 * 4,
+                height: 21 * 4,
+                restart: false,
+                autoPlay: true,
+                callback: function() {
+                    scroller.active = true;
+                }
+            });
+        }
+        tick() {
+            this.sprite.tick();
+        }
+        draw3d() {
+            this.sprite.draw(context, { x: Math.round(this.hitbox.x + 5), y: Math.round(this.hitbox.y) });
+        }
+    }
+
     class Lifter extends GameObject {
         constructor(config) {
             super(config);
             this.sprite = { tick: () => {} };
             this.reset();
+            this.health = 3;
         }
         reset() {
             this.walking = true;
@@ -334,6 +374,24 @@ define('app/game', [
                     max: true
                 }
                 gameObjects.push(new TextFlash(config));
+
+                this.hurt();
+            }
+        }
+        hurt() {
+            this.health--;
+            if (this.health <= 0) {
+                this.markedForRemoval = true;
+                gameObjects.push(new LifterKnocked({
+                    hitbox: {
+                        x: this.hitbox.x,
+                        y: this.hitbox.y,
+                        width: 40,
+                        height: 25
+                    },
+                    color: "blue",
+                    game: game
+                }))
             }
         }
         tick() {
@@ -391,7 +449,6 @@ define('app/game', [
             this.sprite.draw(context, { x: this.hitbox.x, y: this.hitbox.y });
         }
     }
-    window.PunchBag = PunchBag;
     
     class Player extends GameObject {
         constructor(config) {
@@ -530,6 +587,21 @@ define('app/game', [
         }
     }
 
+    class ScreenScroller {
+        constructor() {
+          this.screenOffset = 0;
+          this.active = false;
+        }
+        tick() {
+          if (this.active && this.screenOffset < 400) {
+            this.screenOffset += 1;
+          }
+        }
+        getScreenOffset() {
+          return this.screenOffset;
+        }
+    }
+
     const delta = 1.0/144;
 
     var canvas = document.getElementById('canvas');
@@ -537,6 +609,7 @@ define('app/game', [
 
     return {
         init: function() {
+            scroller = new ScreenScroller();
             gameObjects.push(new Player({
                 hitbox: {
                     x: 300,
@@ -582,6 +655,8 @@ define('app/game', [
         },
         tick: function() {
 
+            scroller.tick();
+
             _.each(gameObjects, function(gameObject) {
                 gameObject.tick();
             });
@@ -593,6 +668,9 @@ define('app/game', [
             gameObjects = _.sortBy(gameObjects, (obj) => {
                 return obj.hitbox.y;
             })
+
+            context.save();
+            context.translate(-scroller.getScreenOffset(), 0);
 
             context.drawImage(dojo, 0, 0);
 
@@ -608,6 +686,8 @@ define('app/game', [
             _.each(gameObjects, function(gameObject) {
                 gameObject.draw3d();
             });
+
+            context.restore();
         }
     }
 });
