@@ -72,6 +72,12 @@ define('app/game', [
     var lifter_knocked_spritesheet = new Image();
     lifter_knocked_spritesheet.src = "./graphics/lifter_knocked.png";
 
+    var lifter_small_block_spritesheet = new Image();
+    lifter_small_block_spritesheet.src = "./graphics/lifter_smallblock.png";
+    
+    var lifter_big_block_spritesheet = new Image();
+    lifter_big_block_spritesheet.src = "./graphics/lifter_bigblock.png";
+
     var player_punch_uppercut_spritesheet = new Image();
     player_punch_uppercut_spritesheet.src = "./graphics/fighter_punch_uppercut_spritesheet.png";
 
@@ -299,7 +305,7 @@ define('app/game', [
             super(config);
             this.sprite = { tick: () => {} };
             this.sprite = SpriteSheet.new(lifter_knocked_spritesheet, {
-                frames: [400, 400, 400, 400, 400, 3000],
+                frames: [400, 400, 400, 350, 350, 300, 3000],
                 x: 0,
                 y: 0,
                 width: 15 * 4,
@@ -338,6 +344,30 @@ define('app/game', [
                 autoPlay: true
             });
         }
+        setSmallBlock() {
+            this.sprite = SpriteSheet.new(lifter_small_block_spritesheet, {
+                frames: [400, 300],
+                x: 0,
+                y: 0,
+                width: 15 * 4,
+                height: 21 * 4,
+                restart: true,
+                autoPlay: true,
+                callback: this.reset.bind(this)
+            });
+        }
+        setBigBlock() {
+            this.sprite = SpriteSheet.new(lifter_big_block_spritesheet, {
+                frames: [300, 200, 200, 200],
+                x: 0,
+                y: 0,
+                width: 15 * 4,
+                height: 21 * 4,
+                restart: true,
+                autoPlay: true,
+                callback: this.reset.bind(this)
+            });
+        }
         hit(power) {
             var callback = function() {
                 this.reset();
@@ -356,7 +386,9 @@ define('app/game', [
                 callback: callback
             });
 
-            if (power > 0 && power <= 60) {
+            if (power === 0) {
+                this.setSmallBlock()
+            } else if (power > 0 && power <= 60) {
                 var config = {
                     hitbox: {
                         x: this.hitbox.x + 5,
@@ -365,6 +397,7 @@ define('app/game', [
                     max: false
                 }
                 gameObjects.push(new TextFlash(config));
+                this.setBigBlock()
             } else if (power > 60) {
                 var config = {
                     hitbox: {
@@ -374,7 +407,6 @@ define('app/game', [
                     max: true
                 }
                 gameObjects.push(new TextFlash(config));
-
                 this.hurt();
             }
         }
@@ -517,6 +549,7 @@ define('app/game', [
                                 width: this.hitbox.width,
                                 height: this.hitbox.height - offset*2
                             },
+                            power: 0,
                             game: game
                         }
                         gameObjects.push(new Punch(config))
