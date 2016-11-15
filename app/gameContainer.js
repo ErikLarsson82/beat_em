@@ -3,12 +3,14 @@ requirejs.config({
     baseUrl: 'lib',
     paths: {
       'app': '../app',
+      'GameLoop': '../node_modules/gameloop-schwein/GameLoop'
     }
 });
 
 requirejs([
-  'app/game'
-], function (game) {
+  'app/game',
+  'GameLoop'
+], function (game, GameLoop) {
 
     let running = true;
 
@@ -20,10 +22,15 @@ requirejs([
 
     game.init();
 
-    function gameLoop() {
-        window.requestAnimationFrame(gameLoop);
+    var tick = function(delta) {
         if (!running) return;
-        game.tick();
+        game.tick(delta);
     }
-    gameLoop();
+    var config = {
+        callback: tick,
+        fpsMode: 'screenHz',
+        autoStart: true,
+        createDebugKeyBoardShortcuts: true
+    }
+    var gameLoop = new GameLoop(config);
 })

@@ -147,10 +147,10 @@ define('app/game', [
                 });
             }
         }
-        tick() {
-            this.hitbox.y = this.hitbox.y - 0.5;
-            this.timer.tick();
-            this.sprite && this.sprite.tick();
+        tick(delta) {
+            this.hitbox.y = this.hitbox.y - (0.07 * delta);
+            this.timer.tick(delta);
+            this.sprite && this.sprite.tick(delta);
         }
         draw3d() {
             if (this.timer.status() > this.duration - 400 ) return;
@@ -185,7 +185,7 @@ define('app/game', [
         }
         tick() {
             this.detectHitsOnce();
-            this.removeTimer.tick();
+            this.removeTimer.tick(delta);
         }
         draw2d() {
             context.fillStyle = this.color;
@@ -199,12 +199,12 @@ define('app/game', [
             this.sprite = { tick: () => {} };
             this.resetColor = { tick: () => {} };
         }
-        tick() {
-            this.sprite.tick();
-            this.resetColor.tick();
+        tick(delta) {
+            this.sprite.tick(delta);
+            this.resetColor.tick(delta);
         }
         hit(power) {
-            if (power > 0 && power < 50) {
+            if (power > 0 && power <= 50) {
                 var config = {
                     hitbox: {
                         x: this.hitbox.x + 5,
@@ -276,7 +276,7 @@ define('app/game', [
                 }))
             }.bind(this);
             this.sprite = SpriteSheet.new(lifter_hurt_spritesheet, {
-                frames: [400, 400, 400, 400, 400, 400],
+                frames: [200, 200, 200, 200, 200, 200],
                 x: 0,
                 y: 0,
                 width: 15 * 4,
@@ -286,8 +286,8 @@ define('app/game', [
                 callback: callback
             });;
         }
-        tick() {
-            this.sprite.tick();
+        tick(delta) {
+            this.sprite.tick(delta);
         }
         draw3d() {
             this.sprite.draw(context, { x: this.hitbox.x + 5, y: this.hitbox.y });
@@ -311,8 +311,8 @@ define('app/game', [
                 }
             });
         }
-        tick() {
-            this.sprite.tick();
+        tick(delta) {
+            this.sprite.tick(delta);
         }
         draw3d() {
             this.sprite.draw(context, { x: Math.round(this.hitbox.x + 5), y: Math.round(this.hitbox.y) });
@@ -329,7 +329,7 @@ define('app/game', [
         reset() {
             this.walking = true;
             this.sprite = SpriteSheet.new(lifter_idle_spritesheet, {
-                frames: [400, 400],
+                frames: [200, 200],
                 x: 0,
                 y: 0,
                 width: 15 * 4,
@@ -346,7 +346,7 @@ define('app/game', [
 
             this.walking = false;
             this.sprite = SpriteSheet.new(lifter_hurt_spritesheet, {
-                frames: [400, 400, 400, 400, 400, 400],
+                frames: [200, 200, 200, 200, 200, 200],
                 x: 0,
                 y: 0,
                 width: 15 * 4,
@@ -356,7 +356,7 @@ define('app/game', [
                 callback: callback
             });
 
-            if (power > 0 && power < 65) {
+            if (power > 0 && power <= 60) {
                 var config = {
                     hitbox: {
                         x: this.hitbox.x + 5,
@@ -365,7 +365,7 @@ define('app/game', [
                     max: false
                 }
                 gameObjects.push(new TextFlash(config));
-            } else if (power > 65) {
+            } else if (power > 60) {
                 var config = {
                     hitbox: {
                         x: this.hitbox.x + 5,
@@ -394,11 +394,11 @@ define('app/game', [
                 }))
             }
         }
-        tick() {
-            this.sprite.tick();
+        tick(delta) {
+            this.sprite.tick(delta);
 
             if (this.walking && this.hitbox.x > 480) {
-                this.hitbox.x -= 0.5;
+                this.hitbox.x -= delta / 10;
             }
         }
         draw3d() {
@@ -419,11 +419,11 @@ define('app/game', [
                 autoPlay: false
             });
         }
-        tick() {
-            this.sprite.tick();
+        tick(delta) {
+            this.sprite.tick(delta);
         }
         hit(power) {
-            if (power > 0 && power < 65) {
+            if (power > 0 && power <= 60) {
                 var config = {
                     hitbox: {
                         x: this.hitbox.x + 5,
@@ -432,7 +432,7 @@ define('app/game', [
                     max: false
                 }
                 gameObjects.push(new TextFlash(config));
-            } else if (power > 65) {
+            } else if (power > 60) {
                 var config = {
                     hitbox: {
                         x: this.hitbox.x + 5,
@@ -495,14 +495,13 @@ define('app/game', [
                 autoPlay: true
             });
         }
-        tick() {
+        tick(delta) {
             var pad = userInput.getInput(this.id);
             debugWriteButtons(pad);
-            this.sprite.tick();
+            this.sprite.tick(delta);
+            this.duration -= delta;
             switch(this.state) {
                 case WALKING:
-                    this.duration--;
-                    
                     this.direction =  (pad.axes[0] > 0) ? LEFT: RIGHT;
 
                     this.comboReady = false;
@@ -523,17 +522,17 @@ define('app/game', [
                         gameObjects.push(new Punch(config))
                         this.state = PUNCH;
                         this.setPunchSpriteSheet();
-                        this.duration = 70;
+                        this.duration = this.sprite.totalAnimationTime;
                         return;
                     }
 
-                    this.hitbox.x = this.hitbox.x + pad.axes[0];
-                    this.hitbox.y = this.hitbox.y + pad.axes[1];
+                    this.hitbox.x = this.hitbox.x + pad.axes[0] * delta / 10;
+                    this.hitbox.y = this.hitbox.y + pad.axes[1] * delta / 10;
                 break;
                 case PUNCH:
-                    this.duration = this.duration - 1;
                     if (pad.buttons[2].pressed && this.comboReady) {
                         var offset = 7;
+                        var power = utils.interpolateLinear(this.sprite.totalAnimationTime, 70, 0)[this.duration];
                         var config = {
                             hitbox: {
                                 x: this.hitbox.x + this.hitbox.width,
@@ -542,30 +541,27 @@ define('app/game', [
                                 height: this.hitbox.height - offset*2
                             },
                             game: game,
-                            power: 70 - this.duration
+                            power: power
                         }
                         gameObjects.push(new Punch(config))
                         this.state = PUNCH_UPPERCUT;
                         this.setPunchUppercutSpriteSheet();
-                        this.duration = 70;
+                        this.duration = this.sprite.totalAnimationTime;
                         return;
                     }
                     if (!pad.buttons[2].pressed) {
                         this.comboReady = true;
                     }
 
-                    if (this.duration < 0) {
+                    if (this.duration <= 0) {
                         this.state = WALKING;
                         this.setIdleSpriteSheet();
-                        this.duration = 50;
                     }
                 break;
                 case PUNCH_UPPERCUT:
-                    this.duration = this.duration - 1;
-                    if (this.duration < 0) {
+                    if (this.duration <= 0) {
                         this.state = WALKING;
                         this.setIdleSpriteSheet();
-                        this.duration = 50;
                     }
                 break;
             }
@@ -592,9 +588,9 @@ define('app/game', [
           this.screenOffset = 0;
           this.active = false;
         }
-        tick() {
+        tick(delta) {
           if (this.active && this.screenOffset < 400) {
-            this.screenOffset += 1;
+            this.screenOffset += delta / 7;
           }
         }
         getScreenOffset() {
@@ -612,7 +608,7 @@ define('app/game', [
             scroller = new ScreenScroller();
             gameObjects.push(new Player({
                 hitbox: {
-                    x: 300,
+                    x: 270,
                     y: 300,
                     width: 20,
                     height: 20
@@ -653,12 +649,12 @@ define('app/game', [
                 game: game
             }))
         },
-        tick: function() {
+        tick: function(delta) {
 
-            scroller.tick();
+            scroller.tick(delta);
 
             _.each(gameObjects, function(gameObject) {
-                gameObject.tick();
+                gameObject.tick(delta);
             });
             
             gameObjects = _.filter(gameObjects, function(gameObject) {
